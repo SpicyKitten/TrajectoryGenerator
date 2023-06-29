@@ -83,7 +83,7 @@ def main():
     print(f"Transition probabilities from state E: {model.get_transition_probabilities('E')}")
 
     # Generate a sequence of states
-    N = 10000
+    N = 25000
     chain_length = 10
     chains = model.get_chains('start', chain_length, N, include_start_state=False)
     num_prompt_types = 5
@@ -96,7 +96,7 @@ def main():
         print(len(prompts_list))
         end_time = time.time()
         print(f'Elapsed time: {end_time - start_time} seconds')
-        with open(f'prompt_type_{prompt_type}.json', 'w') as file:
+        with open(f'prompt_type_{prompt_type}_{N}.json', 'w') as file:
             outputs = []
             for (instruction, input_, response) in prompts_list:
                 response = str(response).replace('[', '').replace(']', '').replace('\'', '')
