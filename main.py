@@ -1,6 +1,6 @@
 import random
 import json
-
+import numpy as np
 from markov_model import MarkovModel
 import time
 
@@ -53,13 +53,9 @@ def create_prompt_from_trajectories(prompt_type, trajectories):
         yield instruction, *input_mapping[function_input](function_input, trajectory)
 
 
-def main():
-    print("Hello TrajectoryGenerator")
-    # Example usage
+def get_model():
     states = ['start', 'A', 'B', 'C', 'D', 'E']
-
     model = MarkovModel(states)
-
     # Define transition probabilities
     model.add_transition('start', 'A', 0.2)
     model.add_transition('start', 'B', 0.2)
@@ -76,6 +72,14 @@ def main():
     model.add_transition('D', 'E', 0.8)
     model.add_transition('E', 'B', 0.9)
     model.add_transition('E', 'D', 0.1)
+    return model
+
+
+def main():
+    print("Hello TrajectoryGenerator")
+    # Example usage
+
+    model = get_model()
     print(f"Transition probabilities from state A: {model.get_transition_probabilities('A')}")
     print(f"Transition probabilities from state B: {model.get_transition_probabilities('B')}")
     print(f"Transition probabilities from state C: {model.get_transition_probabilities('C')}")
@@ -88,7 +92,7 @@ def main():
     chains = model.get_chains('start', chain_length, N, include_start_state=False)
     num_prompt_types = 5
     for prompt_type in range(num_prompt_types):
-        if prompt_type != 4:
+        if prompt_type != 1:
             continue
         prompts = create_prompt_from_trajectories(prompt_type, chains)
         start_time = time.time()
@@ -111,4 +115,19 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    # main()
+    model_ = get_model()
+    chain = model_.get_chain('start', 10, include_start_state=False)
+    next_chain = model_.get_chain('start', 10, include_start_state=False)
+    print(model_.get_log_probability_for_sequence(chain))
+    print(model_.get_log_probability_for_sequence(next_chain))
+    factor = 0.8
+    chain_prob = model_.get_log_probability_for_sequence(chain)
+    next_chain_prob = model_.get_log_probability_for_sequence(next_chain)
+    print("probability of chain 1:", np.exp(chain_prob))
+    print("probability of chain 2:", np.exp(next_chain_prob))
+    print("chain prob tolerably > chain 2 prob:", chain_prob > next_chain_prob + np.log(factor))
+    print("chain 2 prob tolerably > chain prob:", next_chain_prob > chain_prob + np.log(factor))
+    print("chain prob > chain 2 prob:", chain_prob > next_chain_prob)
+    print("chain 2 prob > chain prob:", next_chain_prob > chain_prob)
+

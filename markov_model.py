@@ -1,4 +1,5 @@
 import numpy as np
+from itertools import pairwise
 
 
 class MarkovModel:
@@ -6,6 +7,13 @@ class MarkovModel:
         self.states = states
         self.transition_matrix = np.zeros((len(states), len(states)))
         print(f"Transition matrix dimensions: {self.transition_matrix.shape}")
+
+    def get_transition_probability(self, start_state, end_state):
+        start_index = self.states.index(start_state) if start_state in self.states else None
+        end_index = self.states.index(end_state) if end_state in self.states else None
+        if start_index is None or end_index is None:
+            return 0
+        return self.transition_matrix[start_index, end_index]
 
     def get_transition_probabilities(self, current_state):
         current_index = self.states.index(current_state)
@@ -41,3 +49,14 @@ class MarkovModel:
             sequence.append(next_state)
             current_state = next_state
         return sequence
+
+    def get_log_probability_for_sequence(self, sequence):
+        transition_probabilities = []
+        for (state, next_state) in pairwise(sequence):
+            transition_probability = self.get_transition_probability(state, next_state)
+            if transition_probability == 0:
+                return None
+            transition_probabilities.append(transition_probability)
+        transition_log_probabilities = np.log(transition_probabilities)
+        return np.sum(transition_log_probabilities)
+
