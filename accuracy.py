@@ -128,9 +128,13 @@ def main(
         "Count up from 1 to 500.",
     ]:
         print("Instruction:", instruction_)
-        print("Response:", evaluate(instruction_))
+        print("Response:")
+        for token in evaluate(instruction_):
+            print(token, end="")
+        print()
         print()
 
 
 if __name__ == "__main__":
     fire.Fire(main)
+
