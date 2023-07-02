@@ -129,16 +129,16 @@ def main(
         return tokens[0]
 
     # Old testing code follows.
-    model = get_model()
+    markov_model = get_model()
     factor = 0.8
     with open('./prompt_type_4_25000.json') as file:
         data = json.load(file)
         df = pd.json_normalize(data, meta=['instruction', 'input', 'output'])
         df['sequence'] = df.apply(lambda row: get_sequence(row['instruction'], row['input']), axis=1)
         df['sequence_log_prob'] = df.apply(
-            lambda row: model.get_log_probability_for_sequence(parse_sequence(row['sequence'])), axis=1)
+            lambda row: markov_model.get_log_probability_for_sequence(parse_sequence(row['sequence'])), axis=1)
         df['actual_sequence_log_prob'] = df.apply(
-            lambda row: model.get_log_probability_for_sequence(parse_sequence(row['output'])), axis=1)
+            lambda row: markov_model.get_log_probability_for_sequence(parse_sequence(row['output'])), axis=1)
         df['is_accurate'] = df.apply(
             lambda row: row['sequence_log_prob'] > row['actual_sequence_log_prob'] + np.log(factor), axis=1)
         df['sequence_length'] = df.apply(lambda row: len(parse_sequence(row['sequence'])), axis=1)

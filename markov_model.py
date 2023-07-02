@@ -1,5 +1,5 @@
 import numpy as np
-from itertools import pairwise
+from more_itertools import pairwise
 
 
 class MarkovModel:
