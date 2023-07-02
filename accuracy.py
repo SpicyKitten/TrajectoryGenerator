@@ -1,12 +1,17 @@
+import fire
+import json
 import os
 import sys
-
-import fire
 import torch
+import numpy as np
+import pandas as pd
+
+from main import get_model
+from parse_sequence import parse_sequence
 from peft import PeftModel
 from transformers import GenerationConfig, LlamaForCausalLM, LlamaTokenizer
-
 from utils.prompter import Prompter
+
 
 if torch.cuda.is_available():
     device = "cuda"
@@ -113,28 +118,33 @@ def main(
         output = tokenizer.decode(s)
         yield prompter.get_response(output)
 
-    # Old testing code follows.
+    def get_sequence(instruction, input_):
+        tokens = list(evaluate(instruction, input_))
+        if len(tokens) == 0:
+            return ""
+        if len(tokens) > 1:
+            raise AssertionError(f"tokens {tokens} are more numerous than expected!")
+        if type(tokens[0]) != str:
+            raise AssertionError(f"token {tokens[0]} is not a string!")
+        return tokens[0]
 
-    for instruction_ in [
-        "Tell me about alpacas.",
-        "Tell me about the president of Mexico in 2019.",
-        "Tell me about the king of France in 2019.",
-        "List all Canadian provinces in alphabetical order.",
-        "Write a Python program that prints the first 10 Fibonacci numbers.",
-        "Write a program that prints the numbers from 1 to 100. But for multiples of three print 'Fizz' instead of the number and for the multiples of five print 'Buzz'. For numbers which are multiples of both three and five print 'FizzBuzz'.",
-        # noqa: E501
-        "Tell me five words that rhyme with 'shock'.",
-        "Translate the sentence 'I have no mouth but I must scream' into Spanish.",
-        "Count up from 1 to 500.",
-    ]:
-        print("Instruction:", instruction_)
-        print("Response:")
-        for token in evaluate(instruction_):
-            print(token, end="")
-        print()
-        print()
+    # Old testing code follows.
+    model = get_model()
+    factor = 0.8
+    with open('./prompt_type_4_25000.json') as file:
+        data = json.load(file)
+        df = pd.json_normalize(data, meta=['instruction', 'input', 'output'])
+        df['sequence'] = df.apply(lambda row: get_sequence(row['instruction'], row['input']), axis=1)
+        df['sequence_log_prob'] = df.apply(
+            lambda row: model.get_log_probability_for_sequence(parse_sequence(row['sequence'])), axis=1)
+        df['actual_sequence_log_prob'] = df.apply(
+            lambda row: model.get_log_probability_for_sequence(parse_sequence(row['output'])), axis=1)
+        df['is_accurate'] = df.apply(
+            lambda row: row['sequence_log_prob'] > row['actual_sequence_log_prob'] + np.log(factor), axis=1)
+        df['sequence_length'] = df.apply(lambda row: len(parse_sequence(row['sequence'])), axis=1)
+        df[['sequence_log_prob', 'actual_sequence_log_prob', 'is_accurate', 'sequence_length']]\
+            .describe().to_csv("accuracy_output.csv")
 
 
 if __name__ == "__main__":
     fire.Fire(main)
-
