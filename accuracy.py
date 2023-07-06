@@ -9,9 +9,12 @@ import pandas as pd
 from main import get_model
 from parse_sequence import parse_sequence
 from peft import PeftModel
+from tqdm import tqdm
 from transformers import GenerationConfig, LlamaForCausalLM, LlamaTokenizer
 from utils.prompter import Prompter
 
+
+tqdm.pandas()
 
 if torch.cuda.is_available():
     device = "cuda"
@@ -134,10 +137,10 @@ def main(
     with open('./prompt_type_4_25000.json') as file:
         data = json.load(file)
         df = pd.json_normalize(data, meta=['instruction', 'input', 'output'])
-        df['sequence'] = df.apply(lambda row: get_sequence(row['instruction'], row['input']), axis=1)
-        df['sequence_log_prob'] = df.apply(
+        df['sequence'] = df.progress_apply(lambda row: get_sequence(row['instruction'], row['input']), axis=1)
+        df['sequence_log_prob'] = df.progress_apply(
             lambda row: markov_model.get_log_probability_for_sequence(parse_sequence(row['sequence'])), axis=1)
-        df['actual_sequence_log_prob'] = df.apply(
+        df['actual_sequence_log_prob'] = df.progress_apply(
             lambda row: markov_model.get_log_probability_for_sequence(parse_sequence(row['output'])), axis=1)
         df['is_accurate'] = df.apply(
             lambda row: row['sequence_log_prob'] > row['actual_sequence_log_prob'] + np.log(factor), axis=1)
